@@ -65,34 +65,36 @@ module Legendre
         end select
     end function
 
-    function calculate_u(alpha, i_max, p, k, dx) result(u)
+    function norme(i) result(res)
+
+        integer, intent(in) :: i 
+        real(kind=PR) :: res 
+        
+        res = 2._PR/(2._PR*(i-1)+1)
+
+    end function
+
+    function calculate_u(alpha, i_max, p, dx) result(u)
          
-        real(kind=PR), dimension (:), intent(in) :: alpha 
-        integer, intent(in) :: i_max, p, k
-        real(kind=PR), intent(in) :: dx 
-        real(kind=PR), dimension(i_max*k+1) :: u 
-        integer :: i, j, l
-        real(kind=PR) :: h
-
-        h = dx/k
-
-        do i = 1, i_max
-
-            do j = 0, k-1 
-                u((i-1)*k+j+1) = 0._PR
-
-                do l = 1, p 
-                    u((i-1)*k+j+1) = u((i-1)*k+j+1) + alpha((i-1)*p+l) * Leg(l, ((i-1)*dx + h*j - ((i-0.5_PR)*dx))/(dx/2))
-                end do 
+        real(kind=PR), dimension (:), intent(in) :: alpha
+        integer, intent(in) :: i_max, p
+        real(kind=PR), intent(in) :: dx
+        real(kind=PR), dimension(i_max+1) :: u 
+        integer :: i, l
+        
+        do i=1, i_max
+            u(i) = 0._PR
+            do l =1, p 
+                u(i) = u(i) + alpha((i-1)*p + l)*Leg(l, ((i-1._PR)*dx-(i-0.5_PR)*dx)/(dx/2._PR))
             end do 
         end do 
 
-        u(i_max*k+1) = 0._PR
+        u(i_max+1) = 0._PR
 
         do l = 1, p 
-            u(i_max*k+1) = u(i_max*k+1) + alpha((i_max-1)*p+l) * Leg(l, ((i_max*dx - (i_max-0.5_PR)*dx)/(dx/2)))
+            u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, (i_max*dx - (i_max-0.5_PR)*dx)/(dx/2._PR))
         end do 
-    end function
+    end function 
 
 
 end module 
