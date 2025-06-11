@@ -25,11 +25,11 @@ program main
 
 
     ! Paramètres pour le calcul d'ordre
-    p = 3
+    p = 2
     case = 3
     Lx = 1._PR
     t_final = 1._PR
-    a = 1._PR 
+    a = -1._PR 
     lambda = 4._PR
 
     ! Creation des matrices L, M, N
@@ -50,11 +50,19 @@ program main
   
     
     ! Boucle pour le calcul d'erreur
-    do k = 0, 3
+    do k = 0, 4
+
+        ! Ordre en espace
         dx = 0.0625_PR / (2**k)
         i_max = int(Lx/dx)
         dt = lambda * dx / abs(a)
         n_max = int(t_final/dt)
+
+        ! Ordre en temps 
+        ! dt = 0.1_PR / (2**k)
+        ! n_max = int(t_final/dt)
+        ! dx = abs(a) * dt / lambda
+        ! i_max = int(Lx/dx)
 
         print *, dx, i_max, dt, n_max
     
@@ -95,7 +103,7 @@ program main
 
 
         ! Calcul d'erreur en norme 2 
-        u = calculate_u(alpha, i_max, p, dx) 
+        u = calculate_u(alpha, i_max, p, dx)
         err_N2 = 0._PR
         do i = 1, i_max+1
             err_N2 = err_N2 + (u(i) - sol_exacte(dx*(i-1), t_final, Lx, a, case))**2
