@@ -52,9 +52,6 @@ module Legendre
         real(kind=PR) :: res
 
         select case(i)
-
-        case default
-            res = 1._PR
         case(2)
             res = x
         case(3)
@@ -74,10 +71,8 @@ module Legendre
         case(10)
             res = (1.0_PR / 128.0_PR) * (12155.0_PR * x**9 - 25740.0_PR * x**7 + 18018.0_PR * x**5 - &   
                                             4620.0_PR * x**3 + 315.0_PR * x)
-        case(11)
-            res = (1.0_PR / 256.0_PR) * (46189.0_PR * x**10 - 109395.0_PR * x**8 + 90090.0_PR * x**6 - &
-                                            30030.0_PR * x**4 + 3465.0_PR * x**2 - 63.0_PR)
-
+        case default
+            res = 1._PR
         end select
     end function
 
@@ -87,33 +82,52 @@ module Legendre
         integer, intent(in) :: i 
         real(kind=PR) :: res 
         
-        res = 2._PR/(2._PR*(i-1)+1)
+        res = 2.0_PR/(2.0_PR*(i-1.0_PR)+1.0_PR)
 
     end function
 
     ! Fonction prennant une liste de coeffients alpha (coordonnées dans la base de Legendre locale) et renvoie 
     ! la valeur de u aux points (x_1/2, x_3/2, ..., x_imax+1/2)
-    function calculate_u(alpha, i_max, p, dx) result(u)
+    function calculate_u(alpha, i_max, p, a) result(u)
          
-        real(kind=PR), dimension (:), intent(in) :: alpha
+    real(kind=PR), dimension(:), intent(in) :: alpha
         integer, intent(in) :: i_max, p
-        real(kind=PR), intent(in) :: dx
+        real(kind=PR), intent(in) :: a
         real(kind=PR), dimension(i_max+1) :: u 
         integer :: i, l
-        
-        do i=1, i_max
-            u(i) = 0._PR
-            do l =1, p 
-                u(i) = u(i) + alpha((i-1)*p + l)*Leg(l, ((i-1._PR)*dx-(i-0.5_PR)*dx)/(dx/2._PR))
+
+        if (a>0) then ! On distingue a>0 ou a<0
+
+            do i = 1, i_max
+                u(i) = 0.0_PR
+                do l = 1, p 
+                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à évaluer le polynome en -1
+                end do 
             end do 
-        end do 
 
-        u(i_max+1) = 0._PR
+            u(i_max+1) = 0._PR
+            do l = 1, p 
+                u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, 1.0_PR) ! Pour le denier, il s'agit do polynome en 1
+            end do 
+        
+        else if (a<0) then 
 
-        do l = 1, p 
-            u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, (i_max*dx - (i_max-0.5_PR)*dx)/(dx/2._PR))
-        end do 
-    end function 
+            do i = 1, i_max
+                u(i) = 0.0_PR
+                do l = 1, p 
+                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, 1.0_PR) ! Ici c'est l'inverse, car on parcourt de droite à gauche, c'est donc en 1
+                end do 
+            end do 
+
+            u(i_max+1) = 0._PR
+            do l = 1, p 
+                u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, -1.0_PR) ! Puis en -1 pour le dernier
+            end do 
+        
+            
+        end if 
+    end function
+
 
 
 end module 

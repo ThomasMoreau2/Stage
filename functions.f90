@@ -7,57 +7,62 @@ module functions
     contains 
 
     ! Condition initiale u(0, x), différents cas possibles
-    function u_init(x, i) result(res)
+    function u_init(x, cas) result(res)
 
         real(kind=PR), intent(in) :: x 
-        integer, intent(in) :: i
+        integer, intent(in) :: cas
         real(kind=PR) :: res 
 
-        select case(i)
+        select case(cas)
         case(1)
-            res = cos(5._PR*pi*x)
+            res = cos(5.0_PR*pi*x)
         case(2)
-            res = 1._PR + x
+            res = 1.0_PR/2.0_PR + 1.0_PR/2.0_PR*sin(2.0_PR*pi*x)
         case(3)
-            res = 1._PR/2._PR + 1._PR/2._PR*sin(2._PR*pi*x)
+            res = 1.0_PR + x + x**2
+        case(4)
+            res = 1.0_PR + x + x**2 + x**3 
+        case(5)
+            res = 1.0_PR + x + x**2 + x**3 + x**4 
+        case(6)
+            res = cos(2.0_PR*pi*x)
         end select
 
     end function
 
     ! Condition de bord (gauche ou droite selon le signe de a), dépend du cas choisi pour être C infini
-    function u_bound(t, Lx, a, i) result(res)
-        real(kind=PR), intent(in) :: t, Lx, a
-        integer, intent(in) :: i
+    function u_bound(t, Lx, Rx, a, cas) result(res)
+        real(kind=PR), intent(in) :: t, Lx, a, Rx
+        integer, intent(in) :: cas
         real(kind=PR) :: res
 
         if (a > 0) then
-            res = u_init(a*t, i)
+            res = u_init(Lx - a*t, cas)
         else
-            res = u_init(Lx-a*t, i)
+            res = u_init(Rx - a*t, cas)
         end if
+
     end function
 
     ! Solution exacte à (t, x), dépend du cas, et du signe de a
-    function sol_exacte(x, t, Lx, a, i) result(res)
+    function sol_exacte(x, t, Lx, Rx, a, cas) result(res)
+    real(kind=PR), intent(in) :: x, t, Lx, Rx, a
+    integer, intent(in) :: cas
+    real(kind=PR) :: res 
 
-        real(kind=PR), intent(in) :: x, t, Lx, a
-        integer, intent(in) :: i
-        real(kind=PR) :: res 
-
-        if (a>0) then 
-            if (x-a*t > 0._PR) then 
-                res = u_init(x-a*t, i)
-            else 
-                res = u_bound(t-x/a, Lx, a, i)
-            end if 
+    if (a > 0) then 
+        if (x - a*t > Lx) then 
+            res = u_init(x - a*t, cas)
         else 
-            if (x-a*t < Lx) then 
-                res = u_init(x-a*t, i)
-            else 
-                res = u_bound(t-(x-Lx)/a, Lx, a, i)
-            end if 
+            res = u_bound(t - (x - Lx)/a, Lx, Rx, a, cas)
         end if 
-
-    end function
+    else 
+        if (x - a*t < Rx) then 
+            res = u_init(x - a*t, cas)
+        else 
+            res = u_bound(t - (x - Rx)/a, Lx, Rx, a, cas)
+        end if 
+    end if 
+end function
     
 end module
