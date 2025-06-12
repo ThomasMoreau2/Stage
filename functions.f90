@@ -6,7 +6,7 @@ module functions
 
     contains 
 
-    ! Condition initiale u(0, x), différents cas possibles
+    ! Condition initiale u(0, x), differents cas possibles
     function u_init(x, cas) result(res)
 
         real(kind=PR), intent(in) :: x 
@@ -30,7 +30,7 @@ module functions
 
     end function
 
-    ! Condition de bord (gauche ou droite selon le signe de a), dépend du cas choisi pour être C infini
+    ! Condition de bord (gauche ou droite selon le signe de a), depend du cas choisi pour etre C infini
     function u_bound(t, Lx, Rx, a, cas) result(res)
         real(kind=PR), intent(in) :: t, Lx, a, Rx
         integer, intent(in) :: cas
@@ -44,7 +44,7 @@ module functions
 
     end function
 
-    ! Solution exacte à (t, x), dépend du cas, et du signe de a
+    ! Solution exacte à (t, x), depend du cas, et du signe de a
     function sol_exacte(x, t, Lx, Rx, a, cas) result(res)
     real(kind=PR), intent(in) :: x, t, Lx, Rx, a
     integer, intent(in) :: cas

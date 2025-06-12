@@ -24,13 +24,13 @@ program main
     ! print *, lambda
 
 
-    ! Paramètres pour le calcul d'ordre
-    p = 5
+    ! Parametres pour le calcul d'ordre
+    p = 7
     cas = 2
     Lx = 0.0_PR
     Rx = 1.0_PR
     t_final = 1.0_PR
-    a = -1.0_PR 
+    a = 1.0_PR 
     lambda = 4.0_PR
 
     ! Creation des matrices L, M, N
@@ -50,11 +50,11 @@ program main
     open(unit=30, file="erreur.dat", action='write')
   
     
-    ! Boucle pour le calcul d'erreur
+    ! Boucle pour le calcul d'ordre
     do k = 0, 5
 
-        ! Ordre de convergence
-        dx = 0.0625_PR / (2**k)
+        ! Allocation des parametres pour le calcul d'ordre
+        dx = 0.05_PR / (2**k)
         i_max = int((Rx-Lx)/dx)
         dt = lambda * dx / abs(a)
         n_max = int(t_final/dt)
@@ -72,7 +72,7 @@ program main
             end do 
         end do 
 
-        ! Projection de la condition de bord, dépend du signe de a
+        ! Projection de la condition de bord, depend du signe de a
         if (a>0) then 
             do j = 1, p 
                 beta(j) = quad_bound(0, j, p, dt, Lx, Rx, a, cas)/norme(j)
@@ -84,12 +84,12 @@ program main
         end if 
 
 
-        ! Implementation du schéma 
+        ! Implementation du schema 
         do r=1, n_max ! Boucle en temps 
 
             do i = 1, i_max  ! Boucle en espace 
 
-                if (a>0) then ! Cas a positif: on parcourt le vecteur beta de gauche à droite
+                if (a>0) then ! Cas a positif: on parcourt le vecteur beta de gauche a droite
                     if (abs(lambda)>1) then 
                         alpha_np1((i-1)*p + 1 : i*p) = matmul(mat_L, beta((i-1)*p + 1 : i*p))
                         beta(i*p + 1 : (i+1)*p) = matmul(mat_M, alpha((i-1)*p + 1 : i*p)) + & 
@@ -100,7 +100,7 @@ program main
                         beta(i*p + 1 : (i+1)*p) = matmul(mat_Q, alpha((i-1)*p + 1 : i*p))
                     end if 
 
-                else if (a<0) then ! Cas a négatif: on parcourt le vecteur beta de droite à gauche 
+                else if (a<0) then ! Cas a negatif: on parcourt le vecteur beta de droite a gauche 
 
                     j = i_max - i + 1 ! Changement d'indice pour parcourir de droite à gauche
 
@@ -127,7 +127,7 @@ program main
                 end do 
             end if 
 
-            alpha = alpha_np1
+            alpha = alpha_np1 ! Mise a jour du vecteur alpha
         end do 
 
 

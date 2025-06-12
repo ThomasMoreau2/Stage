@@ -44,7 +44,7 @@ module Legendre
 
     contains 
 
-    ! Fonction renvoyant la valeur du polynome de Legendre de degré (i-1) à l'abcisse x 
+    ! Fonction renvoyant la valeur du polynome de Legendre de degre (i-1) a l'abcisse x 
     function Leg(i, x) result(res)
 
         integer, intent(in) :: i
@@ -72,11 +72,11 @@ module Legendre
             res = (1.0_PR / 128.0_PR) * (12155.0_PR * x**9 - 25740.0_PR * x**7 + 18018.0_PR * x**5 - &   
                                             4620.0_PR * x**3 + 315.0_PR * x)
         case default
-            res = 1._PR
+            res = 1.0_PR
         end select
     end function
 
-    ! Norme d'un polynome de Legendre de degré i-1
+    ! Norme d'un polynome de Legendre de degre i-1
     function norme(i) result(res)
 
         integer, intent(in) :: i 
@@ -86,7 +86,7 @@ module Legendre
 
     end function
 
-    ! Fonction prennant une liste de coeffients alpha (coordonnées dans la base de Legendre locale) et renvoie 
+    ! Fonction prennant une liste de coeffients alpha (coordonnees dans la base de Legendre locale) et renvoie 
     ! la valeur de u aux points (x_1/2, x_3/2, ..., x_imax+1/2)
     function calculate_u(alpha, i_max, p, a) result(u)
          
@@ -101,13 +101,13 @@ module Legendre
             do i = 1, i_max
                 u(i) = 0.0_PR
                 do l = 1, p 
-                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à évaluer le polynome en -1
+                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à evaluer le polynome en -1
                 end do 
             end do 
 
             u(i_max+1) = 0._PR
             do l = 1, p 
-                u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, 1.0_PR) ! Pour le denier, il s'agit do polynome en 1
+                u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, 1.0_PR) ! Pour le dernier, il s'agit du polynome en 1
             end do 
         
         else if (a<0) then 
@@ -115,7 +115,7 @@ module Legendre
             do i = 1, i_max
                 u(i) = 0.0_PR
                 do l = 1, p 
-                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, 1.0_PR) ! Ici c'est l'inverse, car on parcourt de droite à gauche, c'est donc en 1
+                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, 1.0_PR) ! Ici c'est l'inverse, car on parcourt de droite a gauche, c'est donc en 1
                 end do 
             end do 
 
