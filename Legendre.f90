@@ -1,6 +1,7 @@
 module Legendre
 
     use constantes
+    use functions
 
     implicit none 
 

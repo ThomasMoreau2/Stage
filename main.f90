@@ -1,8 +1,9 @@
 program main 
 
     use constantes
-    use Legendre
     use functions
+    use Legendre
+    use quad
     use matrix
 
     implicit none 
@@ -57,7 +58,7 @@ program main
   
     
     ! Boucle pour le calcul d'ordre
-    do k = 0, 5
+    do k = 0, 0
 
         ! Allocation des parametres pour le calcul d'ordre
         dx = 0.0625_PR / (2**k)
