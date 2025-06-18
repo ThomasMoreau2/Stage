@@ -15,7 +15,7 @@ program main
     ! Lecture et definition des parametres 
     ! open(unit=10, file="parametres.dat", action='read')
     ! read (10, *) p, i_max, n_max, t_final, Lx, Rx, a, cas
-    ! close(10)
+    ! close(10) 
 
     ! dx = Lx/i_max
     ! dt = t_final/n_max
@@ -25,25 +25,31 @@ program main
 
 
     ! Parametres pour le calcul d'ordre
-    p = 7
-    cas = 2
+    p = 3
+    cas = 3
     Lx = 0.0_PR
     Rx = 1.0_PR
     t_final = 1.0_PR
-    a = 1.0_PR 
-    lambda = 4.0_PR
+    a = -1.0_PR 
+    lambda = 0.25_PR
 
     ! Creation des matrices L, M, N
     if (abs(lambda)>1) then 
+
         allocate(mat_L(p, p), mat_M(p, p), mat_N(p, p))
-        mat_L = make_L(abs(lambda), p)
-        mat_M = make_M(abs(lambda), p)
+
+        mat_L = make_L(abs(lambda), p, a)
+        mat_M = make_M(abs(lambda), p, a)
         mat_N = make_N(abs(lambda), p)
+
     else if (abs(lambda)<1) then 
+
         allocate(mat_O(p, p), mat_P(p, p), mat_Q(p, p))
-        mat_O = make_N(1._PR/abs(lambda), p)
-        mat_P = make_M(1._PR/abs(lambda), p)
-        mat_Q = make_L(1._PR/abs(lambda), p)
+
+        mat_O = make_O(abs(lambda), p, a)
+        mat_P = make_P(abs(lambda), p, a)
+        mat_Q = make_Q(abs(lambda), p, a)
+
     end if 
 
     ! Ouverture du fichier pour l'ordre 
@@ -54,7 +60,7 @@ program main
     do k = 0, 5
 
         ! Allocation des parametres pour le calcul d'ordre
-        dx = 0.05_PR / (2**k)
+        dx = 0.0625_PR / (2**k)
         i_max = int((Rx-Lx)/dx)
         dt = lambda * dx / abs(a)
         n_max = int(t_final/dt)
@@ -132,7 +138,7 @@ program main
 
 
         ! Calcul d'erreur en norme 2 
-        u = calculate_u(alpha, i_max, p, a)
+        u = calculate_u(alpha, i_max, p)
         err_N2 = 0._PR
         do i = 1, i_max+1
             err_N2 = err_N2 + (u(i) - sol_exacte(Lx+dx*(i-1.0_PR), t_final, Lx, Rx, a, cas))**2

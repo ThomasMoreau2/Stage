@@ -5,7 +5,7 @@ module Legendre
     implicit none 
 
     ! Liste des poids pour les quadratures
-    real(kind=PR), dimension(21), parameter :: weight = [ &
+    real(kind=PR), dimension(66), parameter :: weight = [ &
     ! n = 1
     2.0000000000000000_PR, &
     ! n = 2
@@ -20,10 +20,33 @@ module Legendre
     0.4786286704993665_PR, 0.2369268850561891_PR, &
     ! n = 6
     0.1713244923791704_PR, 0.3607615730481386_PR, 0.4679139345726910_PR, &
-    0.4679139345726910_PR, 0.3607615730481386_PR, 0.1713244923791704_PR ]
+    0.4679139345726910_PR, 0.3607615730481386_PR, 0.1713244923791704_PR, &
+    ! n = 7
+    0.1294849661688697_PR, 0.2797053914892766_PR, 0.3818300505051189_PR, &
+    0.4179591836734694_PR, 0.3818300505051189_PR, 0.2797053914892766_PR, &
+    0.1294849661688697_PR, &
+    ! n = 8
+    0.1012285362903763_PR, 0.2223810344533745_PR, 0.3137066458778873_PR, &
+    0.3626837833783620_PR, 0.3626837833783620_PR, 0.3137066458778873_PR, &
+    0.2223810344533745_PR, 0.1012285362903763_PR, &
+    ! n = 9
+    0.0812743883615744_PR, 0.1806481606948574_PR, 0.2606106964029354_PR, &
+    0.3123470770400029_PR, 0.3302393550012598_PR, 0.3123470770400029_PR, &
+    0.2606106964029354_PR, 0.1806481606948574_PR, 0.0812743883615744_PR, &
+    ! n = 10
+    0.0666713443086881_PR, 0.1494513491505806_PR, 0.2190863625159820_PR, &
+    0.2692667193099963_PR, 0.2955242247147529_PR, 0.2955242247147529_PR, &
+    0.2692667193099963_PR, 0.2190863625159820_PR, 0.1494513491505806_PR, &
+    0.0666713443086881_PR, &
+    ! n = 11
+    0.2729250867779006_PR, 0.2628045445102467_PR, 0.2628045445102467_PR, &
+    0.2331937645919905_PR, 0.2331937645919905_PR, 0.1862902109277343_PR, &
+    0.1862902109277343_PR, 0.1255803694649046_PR, 0.1255803694649046_PR, &
+    0.0556685671161737_PR, 0.0556685671161737_PR ]
+
 
     ! Liste des abcisses pour les quadratures
-    real(kind=PR), dimension(21), parameter :: points = [ &
+    real(kind=PR), dimension(66), parameter :: points = [ &
     ! n = 1
      0.0000000000000000_PR, &
     ! n = 2
@@ -38,7 +61,29 @@ module Legendre
      0.5384693101056831_PR,  0.9061798459386640_PR, &
     ! n = 6
     -0.9324695142031521_PR, -0.6612093864662645_PR, -0.2386191860831969_PR, &
-     0.2386191860831969_PR,  0.6612093864662645_PR,  0.9324695142031521_PR ]
+     0.2386191860831969_PR,  0.6612093864662645_PR,  0.9324695142031521_PR, &
+    ! n = 7
+    -0.9491079123427585_PR, -0.7415311855993945_PR, -0.4058451513773972_PR, &
+     0.0000000000000000_PR,  0.4058451513773972_PR,  0.7415311855993945_PR, &
+     0.9491079123427585_PR, &
+    ! n = 8
+    -0.9602898564975363_PR, -0.7966664774136267_PR, -0.5255324099163290_PR, &
+    -0.1834346424956498_PR,  0.1834346424956498_PR,  0.5255324099163290_PR, &
+     0.7966664774136267_PR,  0.9602898564975363_PR, &
+    ! n = 9
+    -0.9681602395076261_PR, -0.8360311073266358_PR, -0.6133714327005904_PR, &
+    -0.3242534234038089_PR,  0.0000000000000000_PR,  0.3242534234038089_PR, &
+     0.6133714327005904_PR,  0.8360311073266358_PR,  0.9681602395076261_PR, &
+    ! n = 10
+    -0.9739065285171717_PR, -0.8650633666889845_PR, -0.6794095682990244_PR, &
+    -0.4333953941292472_PR, -0.1488743389816312_PR,  0.1488743389816312_PR, &
+     0.4333953941292472_PR,  0.6794095682990244_PR,  0.8650633666889845_PR, &
+     0.9739065285171717_PR, &
+     ! n = 11
+    -0.0000000000000000_PR, -0.2695431559523450_PR,  0.2695431559523450_PR, &
+    -0.5190961292068118_PR,  0.5190961292068118_PR, -0.7301520055740494_PR, &
+    0.7301520055740494_PR, -0.8870625997680953_PR,  0.8870625997680953_PR,  &
+    -0.9782286581460570_PR,  0.9782286581460570_PR ]
 
 
 
@@ -88,44 +133,24 @@ module Legendre
 
     ! Fonction prennant une liste de coeffients alpha (coordonnees dans la base de Legendre locale) et renvoie 
     ! la valeur de u aux points (x_1/2, x_3/2, ..., x_imax+1/2)
-    function calculate_u(alpha, i_max, p, a) result(u)
+    function calculate_u(alpha, i_max, p) result(u)
          
     real(kind=PR), dimension(:), intent(in) :: alpha
         integer, intent(in) :: i_max, p
-        real(kind=PR), intent(in) :: a
         real(kind=PR), dimension(i_max+1) :: u 
         integer :: i, l
 
-        if (a>0) then ! On distingue a>0 ou a<0
-
-            do i = 1, i_max
-                u(i) = 0.0_PR
-                do l = 1, p 
-                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à evaluer le polynome en -1
-                end do 
-            end do 
-
-            u(i_max+1) = 0._PR
+        do i = 1, i_max
+            u(i) = 0.0_PR
             do l = 1, p 
-                u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, 1.0_PR) ! Pour le dernier, il s'agit du polynome en 1
+                u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à evaluer le polynome en -1
             end do 
-        
-        else if (a<0) then 
+        end do 
 
-            do i = 1, i_max
-                u(i) = 0.0_PR
-                do l = 1, p 
-                    u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, 1.0_PR) ! Ici c'est l'inverse, car on parcourt de droite a gauche, c'est donc en 1
-                end do 
-            end do 
-
-            u(i_max+1) = 0._PR
-            do l = 1, p 
-                u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, -1.0_PR) ! Puis en -1 pour le dernier
-            end do 
-        
-            
-        end if 
+        u(i_max+1) = 0.0_PR
+        do l = 1, p 
+            u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, 1.0_PR) ! Pour le dernier, il s'agit du polynome en 1
+        end do 
     end function
 
 

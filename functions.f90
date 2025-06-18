@@ -15,15 +15,15 @@ module functions
 
         select case(cas)
         case(1)
-            res = cos(5.0_PR*pi*x)
+            res = sin(pi*x)
         case(2)
             res = 1.0_PR/2.0_PR + 1.0_PR/2.0_PR*sin(2.0_PR*pi*x)
         case(3)
             res = 1.0_PR + x + x**2
         case(4)
-            res = 1.0_PR + x + x**2 + x**3 
-        case(5)
             res = 1.0_PR + x + x**2 + x**3 + x**4 
+        case(5)
+            res = 1.0_PR + x + x**2 + x**7 + x**9
         case(6)
             res = cos(2.0_PR*pi*x)
         end select

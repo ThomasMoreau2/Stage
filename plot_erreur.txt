@@ -1,24 +1,16 @@
-# convergence.gnu
+unset terminal
 
-set terminal pngcairo enhanced font "Arial,12" size 800,600
-set output 'convergence.png'
-
-# Échelles logarithmiques
 set logscale xy
 
-# Titres et labels
 set title "Ordre de convergence (log-log) en norme L2"
 set xlabel "dx"
 set ylabel "Erreur L2"
 
-# Lecture des données
 f(x) = a * x + b
 fit f(x) 'erreur.dat' using (log10($1)):(log10($2)) via a, b
 
-# Equation de la droite ajustée
 equation_text = sprintf("log10(erreur) = %.3f log10(dx) + %.3f", a, b)
 set label equation_text at graph 0.05, 0.9
 
-# Tracé
 plot 'erreur.dat' using 1:2 with points pt 7 ps 1.5 lc rgb "blue" title "erreur", \
      10**(f(log10(x))) with lines lw 2 lc rgb "red" title sprintf("Régression : ordre %.2f", a)

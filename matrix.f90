@@ -9,72 +9,76 @@ module matrix
     contains 
 
     ! Calcule la quadrature utilisée pour la matrice L décrite dans le rapport: depend de l'indice i et j des polynomes 
-    ! de Legendre utilises, de lambda, et de p (degre du polynome max: p-1)
-    function quad_L(i, j, lambda, p) result(res)
+    ! de Legendre utilises, et de lambda
+    function quad_L(i, j, lambda) result(res)
     
-        integer, intent(in) :: i, j, p
+        integer, intent(in) :: i, j
         real(kind=PR), intent(in) :: lambda
         real(kind=PR) :: res 
         integer :: k, q 
 
-        q = (p-1)/2+2 ! Indice que l'on utilisera pour chaque quadrature, permet d'obtenir l'ordre voulu
+        q = (i+j-1)/2 + 2 ! Indice que l'on utilisera pour chaque quadrature, permet de calculer l'integrale de polynome de maniere exacte
 
         res = 0.0_PR
 
         do k = q*(q-1)/2+1, q*(q-1)/2+q ! Indices permettant de prendre les bons poids/abcisse dans la liste, bases sur la formule n(n+1)/2
-            res = res + weight(k)*Leg(i,1.0_PR-(points(k)+1.0_PR)/lambda)*Leg(j, points(k))
+            res = res + weight(k)*Leg(j,1.0_PR-(points(k)+1.0_PR)/lambda)*Leg(i, points(k))
         end do 
 
     end function
 
     ! Calcule la quadrature utilisee pour la matrice M
-    function quad_M(i, j, lambda, p) result(res)
+    function quad_M(i, j, lambda) result(res)
     
-        integer, intent(in) :: i, j, p
-        real(kind=PR), intent(in) :: lambda
+        integer, intent(in) :: i, j
+        real(kind=PR), intent(in) :: lambda 
         real(kind=PR) :: res 
         integer :: k, q
 
-        q = (p-1)/2+2
+        q = (i+j-1)/2 + 2
 
         res = 0.0_PR
 
         do k = q*(q-1)/2+1, q*(q-1)/2+q
-            res = res + weight(k)*Leg(i, -points(k))*Leg(j, (points(k)+1.0_PR)/lambda-1.0_PR)
+            res = res + weight(k)*Leg(j, -points(k))*Leg(i, (points(k)+1.0_PR)/lambda-1.0_PR)
         end do 
 
     end function
 
     ! Calcule la quadrature utilisee pour la matrice N
-    function quad_N(i, j, lambda, p) result(res)
+    function quad_N(i, j, lambda) result(res)
     
-        integer, intent(in) :: i, j, p
+        integer, intent(in) :: i, j
         real(kind=PR), intent(in) :: lambda
         real(kind=PR) :: res 
         integer :: k, q
 
-        q = (p-1)/2+2
+        q = (i+j-1)/2 + 2
 
         res = 0.0_PR
 
         do k = q*(q-1)/2+1, q*(q-1)/2+q
-            res = res + weight(k)*Leg(i, (points(k)-1.0_PR)*(1.0_PR-1.0_PR/lambda)+1.0_PR-2.0_PR/lambda)* &
-                    Leg(j, ((points(k)-1.0_PR)*(1.0_PR-1.0_PR/lambda)+1.0_PR))
+            res = res + weight(k)*Leg(j, points(k)*(1.0_PR-1.0_PR/lambda)-1.0_PR/lambda)* &
+                    Leg(i, points(k)*(1.0_PR-1.0_PR/lambda)+1.0_PR/lambda)
         end do 
 
     end function
 
     ! Cree la matrice L
-    function make_L(lambda, p) result(L)
+    function make_L(lambda, p, a) result(L)
 
-        real(kind=PR), intent(in) :: lambda
+        real(kind=PR), intent(in) :: lambda, a
         integer, intent(in) :: p
         real(kind=PR), dimension(p, p) :: L
         integer :: i, j
 
         do i = 1, p 
             do j = 1, p
-                L(i, j) = 1.0_PR/norme(i)*quad_L(j, i, lambda, p)
+                L(i, j) = 1.0_PR/norme(i)*quad_L(i, j, lambda)
+
+                if (a<0) then 
+                    L(i, j) = (-1.0_PR)**(i+1) * L(i, j)
+                end if 
             end do 
         end do 
 
@@ -82,16 +86,20 @@ module matrix
     end function
 
     ! Cree la matrice M
-    function make_M(lambda, p) result(M)
+    function make_M(lambda, p, a) result(M)
 
-        real(kind=PR), intent(in) :: lambda
+        real(kind=PR), intent(in) :: lambda, a 
         integer, intent(in) :: p
         real(kind=PR), dimension(p, p) :: M
         integer :: i, j
    
         do i = 1, p
             do j = 1, p
-                M(i, j) = 1.0_PR/norme(i)/lambda*quad_M(j, i, lambda, p)
+                M(i, j) = 1.0_PR/norme(i)/lambda*quad_M(i, j, lambda)
+
+                if (a<0) then 
+                    M(i, j) = (-1.0_PR)**(j+1) * M(i, j)
+                end if 
             end do 
         end do 
     end function
@@ -106,11 +114,81 @@ module matrix
 
         do i = 1, p
             do j = 1, p
-                N(i, j) = (1.0_PR-1.0_PR/lambda)/norme(i)*quad_N(j, i, lambda, p)
+                N(i, j) = (1.0_PR-1.0_PR/lambda)/norme(i)*quad_N(i, j, lambda)
             end do 
         end do 
 
     end function
+
+    ! Cree la matrice O
+    function make_O(lambda, p, a) result(O)
+
+        real(kind=PR), intent(in) :: lambda, a 
+        integer, intent(in) :: p
+        real(kind=PR), dimension(p, p) :: O
+        integer :: i, j
+   
+        if (a>0) then 
+
+            O = make_N(1.0_PR/lambda, p)
+
+        else if (a<0) then 
+
+            do i = 1, p
+                do j = 1, p
+                    O(i, j) = (-1.0_PR)**(i+j)*(1.0_PR-lambda)/norme(i)*quad_N(i, j, 1.0_PR/lambda)
+                end do 
+            end do 
+
+        end if 
+    end function
+
+    ! Cree la matrice P
+    function make_P(lambda, p, a) result(mat_P)
+
+        real(kind=PR), intent(in) :: lambda, a 
+        integer, intent(in) :: p
+        real(kind=PR), dimension(p, p) :: mat_P
+        integer :: i, j
+   
+        if (a>0) then 
+
+            mat_P = make_M(1.0_PR/lambda, p, a)
+
+        else if (a<0) then 
+
+            do i = 1, p
+                do j = 1, p
+                    mat_P(i, j) = (-1.0_PR)**(i+1)*lambda/norme(i)*quad_M(i, j, 1.0_PR/lambda)
+                end do 
+            end do 
+
+        end if 
+    end function
+
+    ! Cree la matrice Q
+    function make_Q(lambda, p, a) result(Q)
+
+        real(kind=PR), intent(in) :: lambda, a 
+        integer, intent(in) :: p
+        real(kind=PR), dimension(p, p) :: Q
+        integer :: i, j
+   
+        if (a>0) then 
+
+            Q = make_L(1.0_PR/lambda, p, a)
+
+            else if (a<0) then 
+
+            do i = 1, p
+                do j = 1, p
+                    Q(i, j) = (-1.0_PR)**(j+1)*1.0_PR/norme(i)*quad_L(i, j, 1.0_PR/lambda)
+                end do 
+            end do 
+
+        end if 
+    end function
+
 
     ! Calcule la quadrature utilisant la condition initiale u(0, x), sert a projeter la condition initiale 
     ! dans la base de Legendre
@@ -121,12 +199,10 @@ module matrix
         real(kind=PR) :: res 
         integer :: k, q 
 
-        q = (p-1)/2+2
-
-        res = 0.0_PR
+        q = (p+j-1)/2 + 2
 
         do k = q*(q-1)/2+1, q*(q-1)/2+q
-            res = res + weight(k)*u_init((dx/2.0_PR*points(k)+Lx + (i-0.5_PR)*dx), cas)* &
+            res = res + weight(k)*u_init((dx/2.0_PR*points(k) + Lx + (i-0.5_PR)*dx), cas)* &
                     Leg(j, points(k))
         end do 
 
@@ -141,7 +217,7 @@ module matrix
     real(kind=PR) :: res 
     integer :: k, q 
 
-    q = (p-1)/2+2
+    q = (p+j-1)/2 + 2
 
     res = 0.0_PR
     do k = q*(q-1)/2+1, q*(q-1)/2+q

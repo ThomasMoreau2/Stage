@@ -13,5 +13,5 @@ unset terminal
 set key outside
 
 # Tracé : colonnes 2 et 3 en fonction de 1
-plot "resultats.dat" using 1:2 with lines lw 2 title "u approx", \
+plot "resultats.dat" using 1:2 title "u approx", \
      "resultats.dat" using 1:3 with lines lw 2 title "u exacte"
