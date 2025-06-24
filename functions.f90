@@ -38,7 +38,7 @@ module functions
 
         if (a > 0) then
             res = u_init(Lx - a*t, cas)
-        else
+        else if (a < 0) then 
             res = u_init(Rx - a*t, cas)
         end if
 
@@ -50,7 +50,7 @@ module functions
     integer, intent(in) :: cas
     real(kind=PR) :: res 
 
-    if (a > 0) then 
+    if (a >= 0) then 
         if (x - a*t > Lx) then 
             res = u_init(x - a*t, cas)
         else 

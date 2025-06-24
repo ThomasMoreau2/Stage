@@ -17,7 +17,7 @@ module matrix
         real(kind=PR) :: res 
         integer :: k, q 
 
-        q = (i+j-1)/2 + 2 ! Indice que l'on utilisera pour chaque quadrature, permet de calculer l'integrale de polynome de maniere exacte
+        q = (i+j-1)/2 + 1 ! Nombre de points a utiliser pour la quadrature 
 
         res = 0.0_PR
 
@@ -35,7 +35,7 @@ module matrix
         real(kind=PR) :: res 
         integer :: k, q
 
-        q = (i+j-1)/2 + 2
+        q = (i+j-1)/2 + 1
 
         res = 0.0_PR
 
@@ -53,7 +53,7 @@ module matrix
         real(kind=PR) :: res 
         integer :: k, q
 
-        q = (i+j-1)/2 + 2
+        q = (i+j-1)/2 + 1
 
         res = 0.0_PR
 
@@ -199,7 +199,7 @@ module matrix
         real(kind=PR) :: res 
         integer :: k, q 
 
-        q = (p+j-1)/2 + 2
+        q = (p+j-1)/2 + 1
 
         do k = q*(q-1)/2+1, q*(q-1)/2+q
             res = res + weight(k)*u_init((dx/2.0_PR*points(k) + Lx + (i-0.5_PR)*dx), cas)* &
@@ -217,7 +217,7 @@ module matrix
     real(kind=PR) :: res 
     integer :: k, q 
 
-    q = (p+j-1)/2 + 2
+    q = (p+j-1)/2 + 1
 
     res = 0.0_PR
     do k = q*(q-1)/2+1, q*(q-1)/2+q

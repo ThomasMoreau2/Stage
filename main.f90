@@ -26,15 +26,15 @@ program main
 
     ! Parametres pour le calcul d'ordre
     p = 3
-    cas = 3
-    Lx = 0.0_PR
+    cas = 1
+    Lx = -1.0_PR
     Rx = 1.0_PR
-    t_final = 1.0_PR
-    a = -1.0_PR 
-    lambda = 0.25_PR
+    t_final = 10.0_PR
+    a = 0.0_PR 
+    lambda = 1.0_PR
 
     ! Creation des matrices L, M, N
-    if (abs(lambda)>1) then 
+    if (abs(lambda)>=1) then 
 
         allocate(mat_L(p, p), mat_M(p, p), mat_N(p, p))
 
@@ -57,15 +57,18 @@ program main
   
     
     ! Boucle pour le calcul d'ordre
-    do k = 0, 5
+    do k = 0, 2
 
         ! Allocation des parametres pour le calcul d'ordre
-        dx = 0.0625_PR / (2**k)
+        dx = 0.01_PR / (1.5_PR**k) ; dt = 0.0_PR ; n_max = 0 
         i_max = int((Rx-Lx)/dx)
-        dt = lambda * dx / abs(a)
-        n_max = int(t_final/dt)
+        if (a /= 0.0_PR) then 
+            dt = lambda * dx / abs(a)
+            n_max = int(t_final/dt) 
+            t_final = n_max * dt 
+        end if 
 
-        print *, dx, i_max, dt, n_max
+        print *, dx, i_max, dt, n_max, t_final
     
         ! Allocation des tableaux
         allocate(alpha(p*i_max), alpha_np1(p*i_max), beta(p*(i_max+1)))
@@ -96,7 +99,7 @@ program main
             do i = 1, i_max  ! Boucle en espace 
 
                 if (a>0) then ! Cas a positif: on parcourt le vecteur beta de gauche a droite
-                    if (abs(lambda)>1) then 
+                    if (abs(lambda)>=1) then 
                         alpha_np1((i-1)*p + 1 : i*p) = matmul(mat_L, beta((i-1)*p + 1 : i*p))
                         beta(i*p + 1 : (i+1)*p) = matmul(mat_M, alpha((i-1)*p + 1 : i*p)) + & 
                                                     matmul(mat_N, beta((i-1)*p + 1 : i*p))
@@ -110,7 +113,7 @@ program main
 
                     j = i_max - i + 1 ! Changement d'indice pour parcourir de droite à gauche
 
-                    if (abs(lambda)>1) then 
+                    if (abs(lambda)>=1) then 
                         alpha_np1((j-1)*p + 1 : j*p) = matmul(mat_L, beta(j*p + 1 : (j+1)*p))
                         beta((j-1)*p + 1 : j*p) = matmul(mat_M, alpha((j-1)*p + 1 : j*p)) + &
                                                     matmul(mat_N, beta(j*p + 1 : (j+1)*p))
@@ -135,7 +138,6 @@ program main
 
             alpha = alpha_np1 ! Mise a jour du vecteur alpha
         end do 
-
 
         ! Calcul d'erreur en norme 2 
         u = calculate_u(alpha, i_max, p)
