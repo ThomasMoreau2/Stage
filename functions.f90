@@ -9,60 +9,100 @@ module functions
     ! Condition initiale u(0, x), differents cas possibles
     function u_init(x, cas) result(res)
 
-        real(kind=PR), intent(in) :: x 
+        real(kind=PR), intent(in) :: x
         integer, intent(in) :: cas
         real(kind=PR) :: res 
 
-        select case(cas)
-        case(1)
+        SELECT CASE(cas)
+
+        CASE(1)
             res = sin(pi*x)
-        case(2)
-            res = 1.0_PR/2.0_PR + 1.0_PR/2.0_PR*sin(2.0_PR*pi*x)
-        case(3)
-            res = 1.0_PR + x + x**2
-        case(4)
-            res = 1.0_PR + x + x**2 + x**3 + x**4 
-        case(5)
-            res = 1.0_PR + x + x**2 + x**7 + x**9
-        case(6)
-            res = cos(2.0_PR*pi*x)
-        end select
+
+        end SELECT
 
     end function
 
     ! Condition de bord (gauche ou droite selon le signe de a), depend du cas choisi pour etre C infini
-    function u_bound(t, Lx, Rx, a, cas) result(res)
-        real(kind=PR), intent(in) :: t, Lx, a, Rx
+    function u_bound(t, Lx, Rx, a, cas, C, tau) result(res)
+
+        real(kind=PR), intent(in) :: t, Lx, a, Rx, C, tau
         integer, intent(in) :: cas
         real(kind=PR) :: res
 
-        if (a > 0) then
-            res = u_init(Lx - a*t, cas)
-        else
-            res = u_init(Rx - a*t, cas)
-        end if
+        SELECT CASE(cas)
+
+        CASE(1) 
+            if (a > 0.0_PR) then 
+                res = C * (1 - exp(-t / tau)) + u_init(Lx - a*t, cas) * exp(-t / tau)
+            else  
+                res = C * (1 - exp(-t / tau)) + u_init(Rx - a*t, cas) * exp(-t / tau)
+            end if 
+        
+        end SELECT
 
     end function
 
     ! Solution exacte à (t, x), depend du cas, et du signe de a
-    function sol_exacte(x, t, Lx, Rx, a, cas) result(res)
-    real(kind=PR), intent(in) :: x, t, Lx, Rx, a
-    integer, intent(in) :: cas
-    real(kind=PR) :: res 
+    function sol_exacte(x, t, Lx, Rx, a, cas, C, tau) result(res)
 
-    if (a > 0) then 
-        if (x - a*t > Lx) then 
-            res = u_init(x - a*t, cas)
-        else 
-            res = u_bound(t - (x - Lx)/a, Lx, Rx, a, cas)
+        real(kind=PR), intent(in) :: x, t, Lx, Rx, a, C, tau
+        integer, intent(in) :: cas
+        real(kind=PR) :: res 
+
+        if (a > 0.0_PR) then 
+
+            if (x-a*t >= Lx) then 
+
+                res = u_init(x - a*t, cas) * exp(-t / tau) + C * (1.0_PR - exp(-t / tau))
+            
+            else if (x-a*t < Lx) then 
+
+                res = u_bound(t - (x - Lx)/a, Lx, Rx, a, cas, C, tau) * exp (-(x - Lx) / (a * tau)) + &
+                            C * (1.0_PR - exp (-(x - Lx) / (a * tau)))
+
+            end if 
+        
+        else if (a < 0.0_PR) then 
+
+            if (x-a*t <= Rx) then 
+
+                res = u_init(x - a*t, cas) * exp(- t / tau) + C * (1.0_PR - exp(-t / tau))
+            
+            else if (x-a*t > Rx) then 
+
+                res = u_bound(t - (x - Rx)/a, Lx, Rx, a, cas, C, tau) * exp (-(x - Rx) / (a * tau)) + &
+                            C * (1.0_PR - exp (-(x - Rx) / (a * tau)))
+
+            end if 
+
+        else if (a == 0.0_PR) then 
+
+            res = u_init(x, cas) * exp(-t / tau) + C * (1.0_PR - exp(-t / tau))
+
         end if 
-    else 
-        if (x - a*t < Rx) then 
-            res = u_init(x - a*t, cas)
-        else 
-            res = u_bound(t - (x - Rx)/a, Lx, Rx, a, cas)
-        end if 
-    end if 
-end function
     
+    end function
+
+        function sum_exp(p, x) result(res)
+
+            real(kind=PR), intent(in) :: x 
+            integer, intent(in) :: p 
+            real(kind=PR) :: res, j
+            integer :: i
+
+            res = 0.0_PR 
+            j = 1.0_PR
+
+            do i = 0, p 
+
+                if (i>1) then 
+                    j = j * i 
+                end if 
+
+                res = res + x**i / j
+
+            end do 
+
+        end function    
+
 end module
