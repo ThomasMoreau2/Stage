@@ -32,10 +32,15 @@ module functions
         SELECT CASE(cas)
 
         CASE(1) 
+
             if (a > 0.0_PR) then 
+
                 res = C * (1 - exp(-t / tau)) + u_init(Lx - a*t, cas) * exp(-t / tau)
-            else  
+
+            else if (a < 0.0_PR) then
+
                 res = C * (1 - exp(-t / tau)) + u_init(Rx - a*t, cas) * exp(-t / tau)
+
             end if 
         
         end SELECT
@@ -83,25 +88,23 @@ module functions
     
     end function
 
-        function sum_exp(p, x) result(res)
+        function fact(k) result(res)
 
-            real(kind=PR), intent(in) :: x 
-            integer, intent(in) :: p 
-            real(kind=PR) :: res, j
+            integer, intent(in) :: k 
+            real(kind=PR) :: res
             integer :: i
 
-            res = 0.0_PR 
-            j = 1.0_PR
+            res = 1.0_PR
 
-            do i = 0, p 
+            if (k >= 1) then 
 
-                if (i>1) then 
-                    j = j * i 
-                end if 
+                do i = 1, k 
 
-                res = res + x**i / j
+                    res = res * i 
 
-            end do 
+                end do 
+
+            end if 
 
         end function    
 

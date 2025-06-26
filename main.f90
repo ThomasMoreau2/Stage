@@ -8,36 +8,38 @@ program main
 
     implicit none 
 
-    integer :: i_max, n_max, p, i, j, r, k, cas
+    integer :: i_max, n_max, p, i, j, r, k, l, cas
     real(kind=PR) :: dx, dt, lambda, t_final, Lx, Rx, a, err_N2, Mn_i, tau, t_exacte
     real(kind=PR), dimension(:), allocatable :: alpha, alpha_np1, beta, u
-    real(kind=PR), dimension(:), allocatable :: V_L, V_M, V_N, V_O, V_P, V_Q
-    real(kind=PR), dimension(:, :), allocatable :: mat_L, mat_M, mat_N, mat_O, mat_P, mat_Q, mat_a_0
+    real(kind=PR), dimension(:), allocatable :: V_N, V_O
+    real(kind=PR), dimension(:, :), allocatable :: V_L, V_M, V_P, V_Q
+    real(kind=PR), dimension(:, :), allocatable ::  mat_N, mat_O, mat_a_0
+    real(kind=PR), dimension(:, :, :), allocatable :: mat_L, mat_M, mat_P, mat_Q
 
 
     ! Definition des parametres
-    p = 3
+    p = 5
     cas = 1
     Lx = -1.0_PR
     Rx = 1.0_PR
-    t_final = 1.0_PR
-    a = 0.0_PR 
-    lambda = 2.0
+    t_final = 10.0_PR
+    a = 1.0_PR 
+    lambda = 4.0_PR
     tau = 1.0_PR
-    Mn_i = 0.0_PR
+    Mn_i = 1.0_PR
 
     ! Allocation des matrices L, M, N et vecteurs V_L, V_M, V_N 
     if (a /= 0.0_PR) then 
 
         if (abs(lambda) >= 1.0_PR) then 
 
-            allocate(mat_L(p, p), mat_M(p, p), mat_N(p, p))
-            allocate(V_L(p), V_M(p), V_N(p))
+            allocate(mat_L(0:p, p, p), mat_M(0:p, p, p), mat_N(p, p))
+            allocate(V_L(0:p, p), V_M(0:p, p), V_N(p))
 
         else if ((abs(lambda) < 1.0_PR)) then 
 
-            allocate(mat_O(p, p), mat_P(p, p), mat_Q(p, p))
-            allocate(V_O(p), V_P(p), V_Q(p))
+            allocate(mat_O(p, p), mat_P(0:p, p, p), mat_Q(0:p, p, p))
+            allocate(V_O(p), V_P(0:p, p), V_Q(0:p, p))
 
         end if 
 
@@ -52,10 +54,10 @@ program main
   
     
     ! Boucle pour le calcul d'ordre
-    do k = 0, 4
+    do l = 0, 2
 
         ! Allocation des parametres pour le calcul d'ordre
-        dx = 0.5_PR / (2.0_PR**k)
+        dx = 0.1_PR / (2.0_PR ** l)
         i_max = int((Rx-Lx)/dx)
 
         if (a /= 0.0_PR) then 
@@ -64,7 +66,7 @@ program main
             dt = lambda * dx 
         end if 
 
-        n_max = int(t_final/dt)
+        n_max = int(t_final/dt) 
         t_exacte = n_max * dt
 
         ! Creation des matrices/vecteurs
@@ -72,29 +74,29 @@ program main
 
             if (abs(lambda) >= 1.0_PR) then 
 
-                mat_L = make_L(p, lambda, tau, abs(dx / a), a)
-                mat_M = make_M(p, lambda, tau, abs(dx / a), a)
-                mat_N = make_N(p, lambda, tau, abs(dx / a))
+                mat_L = make_L(p, lambda, abs(dx / a), a)
+                mat_M = make_M(p, lambda, abs(dx / a), a)
+                mat_N = make_N(p, lambda)
 
-                V_L = make_V_L(p, tau, abs(dx / a), a)
-                V_M = make_V_M(p, lambda, tau, abs(dx / a))
-                V_N = make_V_N(p, lambda, tau, abs(dx / a))
+                V_L = make_V_L(p, abs(dx / a), a)
+                V_M = make_V_M(p, lambda, abs(dx / a))
+                V_N = make_V_N(p, lambda)
 
             else if ((abs(lambda) < 1.0_PR)) then 
 
-                mat_O = make_O(p, lambda, tau, dt, a)
-                mat_P = make_P(p, lambda, tau, dt, a)
-                mat_Q = make_Q(p, lambda, tau, dt, a)
+                mat_O = make_O(p, lambda, a)
+                mat_P = make_P(p, lambda, dt, a)
+                mat_Q = make_Q(p, lambda, dt, a)
 
-                V_O = make_V_O(p, lambda, tau, dt, a)
-                V_P = make_V_P(p, lambda, tau, dt, a)
-                V_Q = make_V_Q(p, tau, dt, a)
+                V_O = make_V_O(p, lambda, a)
+                V_P = make_V_P(p, lambda, dt, a)
+                V_Q = make_V_Q(p, dt, a)
                 
             end if 
         
         else
 
-            mat_a_0 = make_a_0(p, tau, dt)
+            mat_a_0 = make_a_0(p)
 
         end if 
     
@@ -120,30 +122,52 @@ program main
             end do 
         end if 
 
-
         ! Implementation du schema 
         do r=1, n_max ! Boucle en temps 
+
+            alpha_np1 = 0.0_PR  
 
             do i = 1, i_max  ! Boucle en espace 
 
                 if (a > 0.0_PR) then ! Cas a positif: on parcourt le vecteur beta de gauche a droite
 
-                    if (abs(lambda) >= 1.0_PR) then 
+                    beta(i*p + 1 : (i+1)*p) = 0.0_PR
 
-                        alpha_np1((i-1)*p + 1 : i*p) = matmul(mat_L, beta((i-1)*p + 1 : i*p)) + & 
-                                                        Mn_i * V_L
+                    if (abs(lambda) >= 1.0_PR) then ! Cas lambda > 1 
 
-                        beta(i*p + 1 : (i+1)*p) = matmul(mat_M, alpha((i-1)*p + 1 : i*p)) + & 
-                                                    matmul(mat_N, beta((i-1)*p + 1 : i*p)) + &
-                                                    Mn_i * (V_M + V_N)
-                    else if (abs(lambda) < 1.0_PR ) then  
+                        do k = 0, p  ! Boucle pour la serie entiere de exp
 
-                        alpha_np1((i-1)*p + 1 : i*p) = matmul(mat_O, alpha((i-1)*p + 1 : i*p)) + &
-                                                        matmul(mat_P, beta((i-1)*p + 1 : i*p)) + & 
-                                                        Mn_i * (V_O + V_P)
+                            alpha_np1((i-1)*p + 1 : i*p) = alpha_np1((i-1)*p + 1 : i*p) + 1.0_PR / tau**k * & 
+                                                        matmul(mat_L(k, 1:p, 1:p), beta((i-1)*p + 1 : i*p)) + & 
+                                                        Mn_i / tau**k * V_L(k, 1:p)
 
-                        beta(i*p + 1 : (i+1)*p) = matmul(mat_Q, alpha((i-1)*p + 1 : i*p)) + & 
-                                                    Mn_i * V_Q
+                            beta(i*p + 1 : (i+1)*p) = beta(i*p + 1 : (i+1)*p) + 1.0_PR / tau**k * & 
+                                                    matmul(mat_M(k, 1:p, 1:p), alpha((i-1)*p + 1 : i*p)) + & 
+                                                    Mn_i / tau**k * V_M(k, 1:p)
+
+                        end do 
+
+                        beta(i*p + 1 : (i+1)*p) = beta(i*p + 1 : (i+1)*p) + &
+                                                exp(- dx / a / tau) * matmul(mat_N, beta((i-1)*p + 1 : i*p)) + &
+                                                Mn_i * (1 - exp(- dx / a / tau)) * V_N
+
+                    else if (abs(lambda) < 1.0_PR ) then ! Cas lambda > 1 
+
+                        do k = 0, p 
+
+                        alpha_np1((i-1)*p + 1 : i*p) = alpha_np1((i-1)*p + 1 : i*p) + 1.0_PR / tau**k * &
+                                                    matmul(mat_P(k, 1:p, 1:p), beta((i-1)*p + 1 : i*p)) + & 
+                                                    Mn_i / tau**k * V_P(k, 1:p)
+
+                        beta(i*p + 1 : (i+1)*p) = beta(i*p + 1 : (i+1)*p) + 1.0_PR / tau**k * &
+                                                matmul(mat_Q(k, 1:p, 1:p), alpha((i-1)*p + 1 : i*p)) + & 
+                                                Mn_i / tau**k * V_Q(k, 1:p)
+
+                        end do 
+
+                        alpha_np1((i-1)*p + 1 : i*p) = alpha_np1((i-1)*p + 1 : i*p) + & 
+                                                exp(-dt / tau) *matmul(mat_O, alpha((i-1)*p + 1 : i*p)) + & 
+                                                Mn_i * (1 - exp(-dt / tau)) * V_O
 
                     end if 
 
@@ -151,23 +175,42 @@ program main
 
                     j = i_max - i + 1 ! Changement d'indice pour parcourir de droite à gauche
 
+                    beta((j-1)*p + 1 : j*p) = 0.0_PR
+
                     if (abs(lambda) >= 1.0_PR) then 
 
-                        alpha_np1((j-1)*p + 1 : j*p) = matmul(mat_L, beta(j*p + 1 : (j+1)*p)) + &  
-                                                        Mn_i * V_L
+                        do k = 0, p 
 
-                        beta((j-1)*p + 1 : j*p) = matmul(mat_M, alpha((j-1)*p + 1 : j*p)) + &
-                                                    matmul(mat_N, beta(j*p + 1 : (j+1)*p)) + & 
-                                                    Mn_i * (V_M + V_N)
+                            alpha_np1((j-1)*p + 1 : j*p) = alpha_np1((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * & 
+                                                            matmul(mat_L(k, 1:p, 1:p), beta(j*p + 1 : (j+1)*p)) + & 
+                                                            Mn_i / tau**k * V_L(k, 1:p)
+
+                            beta((j-1)*p + 1 : j*p) = beta((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * & 
+                                                    matmul(mat_M(k, 1:p, 1:p), alpha((j-1)*p + 1 : j*p)) + & 
+                                                    Mn_i / tau**k * V_M(k, 1:p)
+                        end do 
+
+                        beta((j-1)*p + 1 : j*p) = beta((j-1)*p + 1 : j*p) + &
+                                                exp(- dx / abs(a) / tau) * matmul(mat_N, beta(j*p + 1 : (j+1)*p)) + &
+                                                Mn_i * (1 - exp(- dx / abs(a) / tau)) * V_N
+
                     else if (abs(lambda) < 1.0_PR) then  
 
-                        alpha_np1((j-1)*p + 1 : j*p) = matmul(mat_O, alpha((j-1)*p + 1 : j*p)) + &
-                                                        matmul(mat_P, beta(j*p + 1 : (j+1)*p)) + & 
-                                                        Mn_i * (V_O + V_P)
+                        do k = 0, p 
 
-                        beta((j-1)*p + 1 : j*p) = matmul(mat_Q, alpha((j-1)*p + 1 : j*p)) + &
-                                                    Mn_i * V_Q
+                            alpha_np1((j-1)*p + 1 : j*p) = alpha_np1((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * &
+                                                        matmul(mat_P(k, 1:p, 1:p), beta(j*p + 1 : (j+1)*p)) + & 
+                                                        Mn_i / tau**k * V_P(k, 1:p)
 
+                            beta((j-1)*p + 1 : j*p) = beta((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * &
+                                                    matmul(mat_Q(k, 1:p, 1:p), alpha((j-1)*p + 1 : j*p)) + & 
+                                                    Mn_i / tau**k * V_Q(k, 1:p)
+
+                        end do 
+
+                        alpha_np1((j-1)*p + 1 : j*p) = alpha_np1((j-1)*p + 1 : j*p) + & 
+                                                exp(-dt / tau) *matmul(mat_O, alpha((j-1)*p + 1 : j*p)) + & 
+                                                Mn_i * (1 - exp(-dt / tau)) * V_O
                     end if 
 
                 else if (a == 0.0_PR) then
@@ -216,20 +259,20 @@ program main
         deallocate(u)
         deallocate(alpha, alpha_np1, beta)
 
-        ! Deallocation des matrices
+    end do 
+
+    ! Deallocation des matrices
         if (a /= 0.0_PR) then 
             if (abs(lambda) > 1.0_PR) then
                 deallocate(mat_L, mat_M, mat_N) 
+                deallocate(V_L, V_M, V_N) 
             else if ((abs(lambda) < 1.0_PR)) then
                 deallocate(mat_O, mat_P, mat_Q)
+                deallocate(V_O, V_P, V_Q)
             end if 
         else 
             deallocate(mat_a_0)
         end if 
-
-
-    end do 
-
 
     ! Fermeture du fichier pour l'ordre 
     close(30)
