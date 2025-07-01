@@ -135,6 +135,7 @@ module quad
 
     end function  
 
+    ! Calcule la quadrature pour la matrice du cas a=0
     function quad_a_0(i, j) result(res)
 
         integer, intent(in) :: i, j
@@ -151,7 +152,26 @@ module quad
 
         end do 
     
-        end function
+    end function
+
+    ! Calcule la quadrature pour le vecteur du cas a=0
+    function quad_V_a_0(i) result(res)
+
+        integer, intent(in) :: i
+        real(kind=PR) :: res 
+        integer :: l, q
+
+        q = i/2 + 1
+
+        res = 0.0_PR
+
+        do l = q * (q-1)/2 + 1, q * (q-1)/2 + q 
+
+            res = res + weight(l) * Leg(i, points(l)) 
+
+        end do 
+    
+    end function
 
     ! Calcule la quadrature utilisant la condition initiale u(0, x), sert a projeter la condition initiale 
     ! dans la base de Legendre
@@ -162,7 +182,7 @@ module quad
         real(kind=PR) :: res 
         integer :: l, q 
 
-        q = (p+j-1)/2 + 1 
+        q = (p+j)/2 + 1 
 
         res = 0.0_PR
 

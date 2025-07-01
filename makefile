@@ -16,4 +16,4 @@ $(EXEC): $(OBJ)
 	$(FC) $(FFLAGS) -c $<
 
 clean:
-	rm -f *.o *.mod *.dat $(EXEC)
+	rm -f *.o *.mod *.dat *.png $(EXEC)

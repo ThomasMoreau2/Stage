@@ -8,25 +8,26 @@ program main
 
     implicit none 
 
-    integer :: i_max, n_max, p, i, j, r, k, l, cas
-    real(kind=PR) :: dx, dt, lambda, t_final, Lx, Rx, a, err_N2, Mn_i, tau, t_exacte
+    integer :: i_max, n_max, p, i, j, r, k, l, cas, t1(8), t2(8)
+    real(kind=PR) :: dx, dt, lambda, t_final, Lx, Rx, a, err_N2, Mn_i, tau, t_exacte, C
     real(kind=PR), dimension(:), allocatable :: alpha, alpha_np1, beta, u
-    real(kind=PR), dimension(:), allocatable :: V_N, V_O
+    real(kind=PR), dimension(:), allocatable :: V_N, V_O, V_a_0
     real(kind=PR), dimension(:, :), allocatable :: V_L, V_M, V_P, V_Q
     real(kind=PR), dimension(:, :), allocatable ::  mat_N, mat_O, mat_a_0
     real(kind=PR), dimension(:, :, :), allocatable :: mat_L, mat_M, mat_P, mat_Q
 
+    call date_and_time(values=t1)
 
     ! Definition des parametres
-    p = 5
+    p = 3
     cas = 1
     Lx = -1.0_PR
     Rx = 1.0_PR
-    t_final = 10.0_PR
+    t_final = 1.0_PR
     a = 1.0_PR 
     lambda = 4.0_PR
     tau = 1.0_PR
-    Mn_i = 1.0_PR
+    C = 1.0_PR
 
     ! Allocation des matrices L, M, N et vecteurs V_L, V_M, V_N 
     if (a /= 0.0_PR) then 
@@ -45,7 +46,7 @@ program main
 
     else 
 
-        allocate(mat_a_0(p, p))
+        allocate(mat_a_0(p, p), V_a_0(p))
 
     end if 
 
@@ -57,7 +58,7 @@ program main
     do l = 0, 2
 
         ! Allocation des parametres pour le calcul d'ordre
-        dx = 0.1_PR / (2.0_PR ** l)
+        dx = 0.01_PR / (2.0_PR**l)
         i_max = int((Rx-Lx)/dx)
 
         if (a /= 0.0_PR) then 
@@ -97,6 +98,7 @@ program main
         else
 
             mat_a_0 = make_a_0(p)
+            V_a_0 = make_V_a_0(p)
 
         end if 
     
@@ -114,11 +116,11 @@ program main
         ! Projection de la condition de bord, depend du signe de a
         if (a > 0.0_PR) then 
             do j = 1, p 
-                beta(j) = quad_bound(0, j, p, dt, Lx, Rx, a, cas, Mn_i, tau)/norme(j)
+                beta(j) = quad_bound(0, j, p, dt, Lx, Rx, a, cas, C, tau)/norme(j)
             end do 
         else if (a < 0.0_PR) then 
             do j = 1, p 
-                beta(p*i_max+j) = quad_bound(0, j, p, dt, Lx, Rx, a, cas, Mn_i, tau)/norme(j)
+                beta(p*i_max+j) = quad_bound(0, j, p, dt, Lx, Rx, a, cas, C, tau)/norme(j)
             end do 
         end if 
 
@@ -128,6 +130,8 @@ program main
             alpha_np1 = 0.0_PR  
 
             do i = 1, i_max  ! Boucle en espace 
+
+                Mn_i = (Sn_i(Lx + (i - 1)*dx, cas, C) + Sn_i(Lx + i*dx, cas, C)) / 2.0_PR
 
                 if (a > 0.0_PR) then ! Cas a positif: on parcourt le vecteur beta de gauche a droite
 
@@ -215,8 +219,8 @@ program main
 
                 else if (a == 0.0_PR) then
 
-                    alpha_np1((i-1)*p + 1 : i*p) = matmul(mat_a_0, alpha((i-1)*p + 1 : i*p)) + &
-                                                        Mn_i * 2.0_PR * (1 - exp(-dt / tau))
+                    alpha_np1((i-1)*p + 1 : i*p) = matmul(mat_a_0, alpha((i-1)*p + 1 : i*p)) * exp(-dt / tau) + &
+                                                        Mn_i * (1 - exp(-dt / tau)) * V_a_0
 
                 end if 
             end do 
@@ -233,12 +237,13 @@ program main
             end if 
 
             alpha = alpha_np1 ! Mise a jour du vecteur alpha
+
         end do 
 
 
         ! Calcul d'erreur en norme 2 
         u = calculate_u(alpha, i_max, p)
-        err_N2 = 0._PR
+        err_N2 = 0.0_PR
         do i = 1, i_max+1
             err_N2 = err_N2 + (u(i) - sol_exacte(Lx+dx*(i-1.0_PR), t_exacte, Lx, Rx, a, cas, Mn_i, tau))**2
         end do 
@@ -271,10 +276,14 @@ program main
                 deallocate(V_O, V_P, V_Q)
             end if 
         else 
-            deallocate(mat_a_0)
+            deallocate(mat_a_0, V_a_0)
         end if 
 
     ! Fermeture du fichier pour l'ordre 
     close(30)
+
+    call date_and_time(values=t2)
+    print *, t2(5)*3600.0 + t2(6)*60.0 + t2(7) + t2(8)/1000.0 - &
+            (t1(5)*3600.0 + t1(6)*60.0 + t1(7) + t1(8)/1000.0), err_N2
 
 end program

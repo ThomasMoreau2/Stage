@@ -285,11 +285,29 @@ module matrix
 
         do i = 1, p
             do j = 1, p
+
                 mat_a_0(i, j) = 1.0_PR / norme(i) * quad_a_0(i, j)
+
             end do 
         end do 
 
     end function
+
+    ! Cree le vecteur lorsque a=0
+    function make_V_a_0(p) result(V_a_0)
+
+        integer, intent(in) :: p
+        real(kind=PR), dimension(p) :: V_a_0
+        integer :: i
+
+        do i = 1, p
+
+            V_a_0(i) = 1.0_PR / norme(i) * quad_V_a_0(i)
+
+        end do 
+
+    end function
+
 
 
 end module 
