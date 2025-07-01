@@ -1,7 +1,6 @@
 module Legendre
 
     use constantes
-    use functions
 
     implicit none 
 
@@ -148,10 +147,6 @@ module Legendre
      0.9894009349916499_PR]
 
 
-
-
-
-
     contains 
 
     ! Fonction renvoyant la valeur du polynome de Legendre de degre (i-1) a l'abcisse x 
@@ -186,6 +181,7 @@ module Legendre
         end select
     end function
 
+
     ! Norme d'un polynome de Legendre de degre i-1
     function norme(i) result(res)
 
@@ -196,28 +192,56 @@ module Legendre
 
     end function
 
+
     ! Fonction prennant une liste de coeffients alpha (coordonnees dans la base de Legendre locale) et renvoie 
     ! la valeur de u aux points (x_1/2, x_3/2, ..., x_imax+1/2)
-    function calculate_u(alpha, i_max, p) result(u)
+    function calculate_f(nx, nv, p, alpha) result(f)
          
-    real(kind=PR), dimension(:), intent(in) :: alpha
-        integer, intent(in) :: i_max, p
-        real(kind=PR), dimension(i_max+1) :: u 
-        integer :: i, l
+        integer, intent(in) :: nx, nv, p
+        real(kind=PR), dimension(p * nx, 0:nv), intent(in) :: alpha
+        real(kind=PR), dimension(0: nx, 0:nv) :: f
+        integer :: i, j, l
 
-        do i = 1, i_max
-            u(i) = 0.0_PR
-            do l = 1, p 
-                u(i) = u(i) + alpha((i-1)*p + l) * Leg(l, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à evaluer le polynome en -1
+        f = 0.0_PR
+
+        do l = 0, nv 
+            do i = 0, nx - 1
+                do j = 1, p 
+
+                    f(i, l) = f(i, l) + alpha(i*p + j, l) * Leg(j, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à evaluer le polynome en -1
+
+                end do 
+            end do 
+
+            do j = 1, p 
+
+                f(nx, l) = f(nx, l) + alpha((nx-1)*p + j, l) * Leg(j, 1.0_PR) ! Pour le dernier, il s'agit du polynome en 1
+
             end do 
         end do 
 
-        u(i_max+1) = 0.0_PR
-        do l = 1, p 
-            u(i_max+1) = u(i_max+1) + alpha((i_max-1)*p + l) * Leg(l, 1.0_PR) ! Pour le dernier, il s'agit du polynome en 1
-        end do 
     end function
 
+
+    function fact(k) result(res)
+
+        integer, intent(in) :: k 
+        real(kind=PR) :: res
+        integer :: i
+
+        res = 1.0_PR
+
+        if (k >= 1) then 
+
+            do i = 1, k 
+
+                res = res * i 
+
+            end do 
+
+        end if 
+
+    end function    
 
 
 end module 

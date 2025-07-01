@@ -8,26 +8,70 @@ program main
 
     implicit none 
 
-    integer :: i_max, n_max, p, i, j, r, k, l, cas, t1(8), t2(8)
-    real(kind=PR) :: dx, dt, lambda, t_final, Lx, Rx, a, err_N2, Mn_i, tau, t_exacte, C
-    real(kind=PR), dimension(:), allocatable :: alpha, alpha_np1, beta, u
+    integer :: nx, p, i, j, r, k, n_max, nv, l
+    real(kind=PR) :: dx, dt, lambda, t_final, Lx, Rx, a, err_N2, Mn_i, t_exacte, C
+    real(kind=PR) :: rho_g, rho_d, u_g, u_d, T_g, T_d, eps, temps, n_iter
+    real(kind=PR) :: v_min, v_max, dv, x
+    real(kind=PR), dimension(:, :), allocatable :: alpha, alpha_np1, beta
+    real(kind=PR), dimension(:), allocatable :: rho, u, T, tau, v
     real(kind=PR), dimension(:), allocatable :: V_N, V_O, V_a_0
     real(kind=PR), dimension(:, :), allocatable :: V_L, V_M, V_P, V_Q
     real(kind=PR), dimension(:, :), allocatable ::  mat_N, mat_O, mat_a_0
     real(kind=PR), dimension(:, :, :), allocatable :: mat_L, mat_M, mat_P, mat_Q
 
-    call date_and_time(values=t1)
+    ! Choix du degré
+    p = 2
 
-    ! Definition des parametres
-    p = 3
-    cas = 1
+    ! Definition des donnes
+    rho_g = 1.0_pr ; u_g = 0.0_pr ; T_g = 1.0_pr 
+    rho_d = 0.125_pr ; u_d = 0.0_pr ; T_d = 0.8_pr 
+    eps = 0.1_pr 
+    temps = 0.0_pr
+    n_iter = 0
+
+    ! Maillage en espace et temps final
     Lx = -1.0_PR
     Rx = 1.0_PR
-    t_final = 1.0_PR
-    a = 1.0_PR 
-    lambda = 4.0_PR
-    tau = 1.0_PR
-    C = 1.0_PR
+    nx = 10
+    dx = (Rx - Lx)/nx 
+    t_final = 0.2_pr
+
+    ! Allocation des tableaux des quantites macro 
+    allocate(rho(0:nx), u(0:nx), T(0:nx), tau(0:nx))
+
+    ! Maillage en vitesse
+    v_min = u_g - 5 * sqrt(T_g)
+    v_max = u_d + 5 * sqrt(T_d)
+    nv = 5
+    dv = (v_max - v_min)/nv
+
+    ! Allocation des vitesses, et des tableaux de coefficients
+    allocate(v(0:nv))
+    allocate(alpha(p*nx, 0:nv), alpha_np1(p*nx, 0:nv), beta(p*(nx+1), 0:nv))
+
+    ! Initialisation du vecteur des vitesses
+    do l = 0, nv 
+
+        v(l) = v_min + dv * l
+
+    end do 
+
+    ! Projection de la condition initiale
+    do l = 0, nv
+        do i = 1, nx
+            do j = 1, p 
+ 
+                alpha((i-1)*p + j, l) = quad_init(i, j, p, dx, Lx, rho_g, rho_d, T_g, T_d, v(l))/norme(j)
+
+            end do 
+        end do 
+    end do 
+
+    ! Initialisation des quantites macro
+    rho = calcul_rho(nx, nv, p, dv, alpha)
+    tau = calcul_tau(nx, nv, p, dv, alpha)
+    u = calcul_u(nx, nv, p, dv, v, alpha)
+    T = calcul_T(nx, nv, p, dv, v, alpha)
 
     ! Allocation des matrices L, M, N et vecteurs V_L, V_M, V_N 
     if (a /= 0.0_PR) then 
@@ -50,240 +94,7 @@ program main
 
     end if 
 
-    ! Ouverture du fichier pour l'ordre 
-    open(unit=30, file="erreur.dat", action='write')
+    ! Boucle en temps 
+
   
-    
-    ! Boucle pour le calcul d'ordre
-    do l = 0, 2
-
-        ! Allocation des parametres pour le calcul d'ordre
-        dx = 0.01_PR / (2.0_PR**l)
-        i_max = int((Rx-Lx)/dx)
-
-        if (a /= 0.0_PR) then 
-            dt = lambda * dx / abs(a)
-        else 
-            dt = lambda * dx 
-        end if 
-
-        n_max = int(t_final/dt) 
-        t_exacte = n_max * dt
-
-        ! Creation des matrices/vecteurs
-        if (a /= 0.0_PR) then 
-
-            if (abs(lambda) >= 1.0_PR) then 
-
-                mat_L = make_L(p, lambda, abs(dx / a), a)
-                mat_M = make_M(p, lambda, abs(dx / a), a)
-                mat_N = make_N(p, lambda)
-
-                V_L = make_V_L(p, abs(dx / a), a)
-                V_M = make_V_M(p, lambda, abs(dx / a))
-                V_N = make_V_N(p, lambda)
-
-            else if ((abs(lambda) < 1.0_PR)) then 
-
-                mat_O = make_O(p, lambda, a)
-                mat_P = make_P(p, lambda, dt, a)
-                mat_Q = make_Q(p, lambda, dt, a)
-
-                V_O = make_V_O(p, lambda, a)
-                V_P = make_V_P(p, lambda, dt, a)
-                V_Q = make_V_Q(p, dt, a)
-                
-            end if 
-        
-        else
-
-            mat_a_0 = make_a_0(p)
-            V_a_0 = make_V_a_0(p)
-
-        end if 
-    
-        ! Allocation des tableaux
-        allocate(alpha(p*i_max), alpha_np1(p*i_max), beta(p*(i_max+1)))
-        allocate(u(i_max+1))
-
-        ! Projection de la condition initiale
-        do i = 1, i_max
-            do j = 1, p 
-                alpha((i-1)*p + j) = quad_init(i, j, p, dx, Lx, cas)/norme(j)
-            end do 
-        end do 
-
-        ! Projection de la condition de bord, depend du signe de a
-        if (a > 0.0_PR) then 
-            do j = 1, p 
-                beta(j) = quad_bound(0, j, p, dt, Lx, Rx, a, cas, C, tau)/norme(j)
-            end do 
-        else if (a < 0.0_PR) then 
-            do j = 1, p 
-                beta(p*i_max+j) = quad_bound(0, j, p, dt, Lx, Rx, a, cas, C, tau)/norme(j)
-            end do 
-        end if 
-
-        ! Implementation du schema 
-        do r=1, n_max ! Boucle en temps 
-
-            alpha_np1 = 0.0_PR  
-
-            do i = 1, i_max  ! Boucle en espace 
-
-                Mn_i = (Sn_i(Lx + (i - 1)*dx, cas, C) + Sn_i(Lx + i*dx, cas, C)) / 2.0_PR
-
-                if (a > 0.0_PR) then ! Cas a positif: on parcourt le vecteur beta de gauche a droite
-
-                    beta(i*p + 1 : (i+1)*p) = 0.0_PR
-
-                    if (abs(lambda) >= 1.0_PR) then ! Cas lambda > 1 
-
-                        do k = 0, p  ! Boucle pour la serie entiere de exp
-
-                            alpha_np1((i-1)*p + 1 : i*p) = alpha_np1((i-1)*p + 1 : i*p) + 1.0_PR / tau**k * & 
-                                                        matmul(mat_L(k, 1:p, 1:p), beta((i-1)*p + 1 : i*p)) + & 
-                                                        Mn_i / tau**k * V_L(k, 1:p)
-
-                            beta(i*p + 1 : (i+1)*p) = beta(i*p + 1 : (i+1)*p) + 1.0_PR / tau**k * & 
-                                                    matmul(mat_M(k, 1:p, 1:p), alpha((i-1)*p + 1 : i*p)) + & 
-                                                    Mn_i / tau**k * V_M(k, 1:p)
-
-                        end do 
-
-                        beta(i*p + 1 : (i+1)*p) = beta(i*p + 1 : (i+1)*p) + &
-                                                exp(- dx / a / tau) * matmul(mat_N, beta((i-1)*p + 1 : i*p)) + &
-                                                Mn_i * (1 - exp(- dx / a / tau)) * V_N
-
-                    else if (abs(lambda) < 1.0_PR ) then ! Cas lambda > 1 
-
-                        do k = 0, p 
-
-                        alpha_np1((i-1)*p + 1 : i*p) = alpha_np1((i-1)*p + 1 : i*p) + 1.0_PR / tau**k * &
-                                                    matmul(mat_P(k, 1:p, 1:p), beta((i-1)*p + 1 : i*p)) + & 
-                                                    Mn_i / tau**k * V_P(k, 1:p)
-
-                        beta(i*p + 1 : (i+1)*p) = beta(i*p + 1 : (i+1)*p) + 1.0_PR / tau**k * &
-                                                matmul(mat_Q(k, 1:p, 1:p), alpha((i-1)*p + 1 : i*p)) + & 
-                                                Mn_i / tau**k * V_Q(k, 1:p)
-
-                        end do 
-
-                        alpha_np1((i-1)*p + 1 : i*p) = alpha_np1((i-1)*p + 1 : i*p) + & 
-                                                exp(-dt / tau) *matmul(mat_O, alpha((i-1)*p + 1 : i*p)) + & 
-                                                Mn_i * (1 - exp(-dt / tau)) * V_O
-
-                    end if 
-
-                else if (a < 0.0_PR) then ! Cas a negatif: on parcourt le vecteur beta de droite a gauche 
-
-                    j = i_max - i + 1 ! Changement d'indice pour parcourir de droite à gauche
-
-                    beta((j-1)*p + 1 : j*p) = 0.0_PR
-
-                    if (abs(lambda) >= 1.0_PR) then 
-
-                        do k = 0, p 
-
-                            alpha_np1((j-1)*p + 1 : j*p) = alpha_np1((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * & 
-                                                            matmul(mat_L(k, 1:p, 1:p), beta(j*p + 1 : (j+1)*p)) + & 
-                                                            Mn_i / tau**k * V_L(k, 1:p)
-
-                            beta((j-1)*p + 1 : j*p) = beta((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * & 
-                                                    matmul(mat_M(k, 1:p, 1:p), alpha((j-1)*p + 1 : j*p)) + & 
-                                                    Mn_i / tau**k * V_M(k, 1:p)
-                        end do 
-
-                        beta((j-1)*p + 1 : j*p) = beta((j-1)*p + 1 : j*p) + &
-                                                exp(- dx / abs(a) / tau) * matmul(mat_N, beta(j*p + 1 : (j+1)*p)) + &
-                                                Mn_i * (1 - exp(- dx / abs(a) / tau)) * V_N
-
-                    else if (abs(lambda) < 1.0_PR) then  
-
-                        do k = 0, p 
-
-                            alpha_np1((j-1)*p + 1 : j*p) = alpha_np1((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * &
-                                                        matmul(mat_P(k, 1:p, 1:p), beta(j*p + 1 : (j+1)*p)) + & 
-                                                        Mn_i / tau**k * V_P(k, 1:p)
-
-                            beta((j-1)*p + 1 : j*p) = beta((j-1)*p + 1 : j*p) + 1.0_PR / tau**k * &
-                                                    matmul(mat_Q(k, 1:p, 1:p), alpha((j-1)*p + 1 : j*p)) + & 
-                                                    Mn_i / tau**k * V_Q(k, 1:p)
-
-                        end do 
-
-                        alpha_np1((j-1)*p + 1 : j*p) = alpha_np1((j-1)*p + 1 : j*p) + & 
-                                                exp(-dt / tau) *matmul(mat_O, alpha((j-1)*p + 1 : j*p)) + & 
-                                                Mn_i * (1 - exp(-dt / tau)) * V_O
-                    end if 
-
-                else if (a == 0.0_PR) then
-
-                    alpha_np1((i-1)*p + 1 : i*p) = matmul(mat_a_0, alpha((i-1)*p + 1 : i*p)) * exp(-dt / tau) + &
-                                                        Mn_i * (1 - exp(-dt / tau)) * V_a_0
-
-                end if 
-            end do 
-
-            ! Re-projection de la condition de bord à chaque pas de temps 
-            if (a > 0.0_PR) then 
-                do j = 1, p 
-                    beta(j) = quad_bound(r, j, p, dt, Lx, Rx, a, cas, Mn_i, tau)/norme(j)
-                end do 
-            else if (a < 0.0_PR) then 
-                do j = 1, p 
-                    beta(p*i_max+j) = quad_bound(r, j, p, dt, Lx, Rx, a, cas, Mn_i, tau)/norme(j)
-                end do 
-            end if 
-
-            alpha = alpha_np1 ! Mise a jour du vecteur alpha
-
-        end do 
-
-
-        ! Calcul d'erreur en norme 2 
-        u = calculate_u(alpha, i_max, p)
-        err_N2 = 0.0_PR
-        do i = 1, i_max+1
-            err_N2 = err_N2 + (u(i) - sol_exacte(Lx+dx*(i-1.0_PR), t_exacte, Lx, Rx, a, cas, Mn_i, tau))**2
-        end do 
-        err_N2 = sqrt((err_N2*dx))
-
-        write(30, *) dx, err_N2
-
-
-        ! Calcul de la solution et ecriture dans un fichier
-        open(unit=20, file="resultats.dat", status='replace', action='write')
-        ! u = calculate_u(alpha, i_max, p, dx, Lx)
-        do i = 1, i_max+1
-            write (20, *) Lx+dx*(i-1.0_PR), u(i), sol_exacte(Lx+dx*(i-1.0_PR), t_exacte, Lx, Rx, a, cas, Mn_i, tau)
-        end do 
-        close(20)
-
-        ! Deallocation des tableaux
-        deallocate(u)
-        deallocate(alpha, alpha_np1, beta)
-
-    end do 
-
-    ! Deallocation des matrices
-        if (a /= 0.0_PR) then 
-            if (abs(lambda) > 1.0_PR) then
-                deallocate(mat_L, mat_M, mat_N) 
-                deallocate(V_L, V_M, V_N) 
-            else if ((abs(lambda) < 1.0_PR)) then
-                deallocate(mat_O, mat_P, mat_Q)
-                deallocate(V_O, V_P, V_Q)
-            end if 
-        else 
-            deallocate(mat_a_0, V_a_0)
-        end if 
-
-    ! Fermeture du fichier pour l'ordre 
-    close(30)
-
-    call date_and_time(values=t2)
-    print *, t2(5)*3600.0 + t2(6)*60.0 + t2(7) + t2(8)/1000.0 - &
-            (t1(5)*3600.0 + t1(6)*60.0 + t1(7) + t1(8)/1000.0), err_N2
-
 end program
