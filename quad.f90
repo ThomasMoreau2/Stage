@@ -175,14 +175,14 @@ module quad
 
     ! Calcule la quadrature utilisant la condition initiale u(0, x), sert a projeter la condition initiale 
     ! dans la base de Legendre
-    function quad_init(i, j, p, dx, Lx, rho_g, rho_d, T_g, T_d, v) result(res)
+    function quad_init(i, j, dx, Lx, rho_g, rho_d, T_g, T_d, v) result(res)
     
-        integer, intent(in) :: i, j, p
+        integer, intent(in) :: i, j
         real(kind=PR), intent(in) :: dx, Lx, rho_g, rho_d, T_g, T_d, v
         real(kind=PR) :: res 
         integer :: l, q 
 
-        q = j/2 + 1 
+        q = j/2 + 1
 
         res = 0.0_PR
 
@@ -196,25 +196,25 @@ module quad
 
     end function
 
-    ! ! Calcule la quadrature utilisant la condition de bord, sert a projeter la condition de bord
-    ! ! dans la base de Legendre
-    ! function quad_bound(n, j, p, dt, Lx, Rx, a, tau) result(res)
+    ! Calcule la quadrature utilisant la condition de bord, sert a projeter la condition de bord
+    ! dans la base de Legendre
+    function quad_bound(j, rho_g, u_g, T_g, rho_d, u_d, T_d, v) result(res)
     
-    ! integer, intent(in) :: j, p, n
-    ! real(kind=PR), intent(in) :: dt, Lx, Rx, a, tau
-    ! real(kind=PR) :: res 
-    ! integer :: l, q 
+    integer, intent(in) :: j
+    real(kind=PR), intent(in) :: rho_g, u_g, T_g, rho_d, u_d, T_d, v
+    real(kind=PR) :: res 
+    integer :: l, q 
 
-    ! q = (j + 2*p)/2 
+    q = j/2 + 1
 
-    ! res = 0.0_PR
+    res = 0.0_PR
 
-    ! do l = q * (q-1)/2 + 1, q * (q-1)/2 + q
+    do l = q * (q-1)/2 + 1, q * (q-1)/2 + q
 
-    !     res = res + weight(l) * Leg(j, points(l)) * &
-    !           u_bound(dt/2.0_PR * points(l) + (n + 0.5_PR) * dt, Lx, Rx, a, tau)
-    ! end do 
+        res = res + weight(l) * Leg(j, points(l)) * &
+              u_bound(rho_g, u_g, T_g, rho_d, u_d, T_d, v)
+    end do 
 
-    ! end function
+    end function
 
 end module

@@ -141,4 +141,22 @@ module functions
 
     end function
 
+    function u_bound(rho_g, u_g, T_g, rho_d, u_d, T_d, v) result(res)
+
+        real(kind=PR), intent(in) :: rho_g, u_g, T_g, rho_d, u_d, T_d, v
+        real(kind=PR) :: res 
+        
+        if (v > 0.0_PR) then 
+
+            res = Maxwell(rho_g, u_g, T_g, v)
+
+        else if (v < 0.0_PR) then 
+
+            res = Maxwell(rho_d, u_d, T_d, v)
+
+        end if 
+
+    end function
+
+
 end module

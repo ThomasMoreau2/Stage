@@ -205,18 +205,20 @@ module Legendre
         f = 0.0_PR
 
         do l = 0, nv 
-            do i = 0, nx - 1
-                do j = 1, p 
-
-                    f(i, l) = f(i, l) + alpha(i*p + j, l) * Leg(j, -1.0_PR) ! L'abcisse (i-1)*dx correpsond à evaluer le polynome en -1
-
-                end do 
-            end do 
-
             do j = 1, p 
 
-                f(nx, l) = f(nx, l) + alpha((nx-1)*p + j, l) * Leg(j, 1.0_PR) ! Pour le dernier, il s'agit du polynome en 1
+                    f(0, l) = f(0, l) + alpha(j, l) * Leg(j, -1.0_PR) ! Premier point en x = Lx, polynome en -1
 
+            end do 
+        end do 
+
+        do l = 0, nv 
+            do i = 1, nx 
+                do j = 1, p 
+
+                    f(i, l) = f(i, l) + alpha((i-1)*p + j, l) * Leg(j, 1.0_PR) ! L'abcisse i*dx correpsond à evaluer le polynome en 1
+
+                end do 
             end do 
         end do 
 
