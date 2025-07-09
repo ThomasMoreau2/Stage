@@ -189,7 +189,7 @@ module quad
         do l = q * (q-1)/2 + 1, q * (q-1)/2 + q
 
             res = res + weight(l) * &
-                    u_init((dx/2.0_PR * points(l) + Lx + (i-0.5_PR) * dx), rho_g, rho_d, T_g, T_d, v)* &
+                    f_init((dx/2.0_PR * points(l) + Lx + (i-0.5_PR) * dx), rho_g, rho_d, T_g, T_d, v)* &
                     Leg(j, points(l))
 
         end do 
@@ -212,7 +212,7 @@ module quad
     do l = q * (q-1)/2 + 1, q * (q-1)/2 + q
 
         res = res + weight(l) * Leg(j, points(l)) * &
-              u_bound(rho_g, u_g, T_g, rho_d, u_d, T_d, v)
+              f_bound(rho_g, u_g, T_g, rho_d, u_d, T_d, v)
     end do 
 
     end function

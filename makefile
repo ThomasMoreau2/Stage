@@ -4,7 +4,7 @@ FC = gfortran
 
 FFLAGS = -Wall 
 
-SRC = constantes.f90 Legendre.f90 functions.f90 quad.f90 matrix.f90 main.f90
+SRC = constantes.f90 Legendre.f90 functions.f90 quad.f90 matrix.f90 sol_exacte.f90 main.f90
 OBJ = $(SRC:.f90=.o)
 
 all: $(EXEC)

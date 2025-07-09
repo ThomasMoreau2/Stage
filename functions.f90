@@ -98,7 +98,7 @@ module functions
 
             end do 
 
-            T(i) = (E(i) - 1.0_pr / 2.0_pr * rho(i) * u(i)**2) / (1.0_pr / 2._pr * rho(i))
+            T(i) = (E(i) - 1.0_PR / 2.0_PR * rho(i) * u(i)**2) / (1.0_PR / 2.0_PR * rho(i))
 
         end do 
           
@@ -124,7 +124,7 @@ module functions
     end function
 
 
-    function u_init(x, rho_g, rho_d, T_g, T_d, v) result(res)
+    function f_init(x, rho_g, rho_d, T_g, T_d, v) result(res)
 
         real(kind=PR), intent(in) :: x, rho_g, rho_d, T_g, T_d, v
         real(kind=PR) :: res 
@@ -141,10 +141,12 @@ module functions
 
     end function
 
-    function u_bound(rho_g, u_g, T_g, rho_d, u_d, T_d, v) result(res)
+    function f_bound(rho_g, u_g, T_g, rho_d, u_d, T_d, v) result(res)
 
         real(kind=PR), intent(in) :: rho_g, u_g, T_g, rho_d, u_d, T_d, v
         real(kind=PR) :: res 
+
+        res = 0.0_PR
         
         if (v > 0.0_PR) then 
 
